@@ -1,0 +1,33 @@
+{
+  "error": false,
+  "anomaly_intervals": [
+    [
+      16532,
+      16541
+    ]
+  ],
+  "anomaly_types": [
+    "abrupt_spike"
+  ],
+  "explanations": [
+    "Abrupt rise at 16532 (diff zscore=4.61>4.0); sustained high values 0.149-0.192 until drop at 16542"
+  ],
+  "confidences": [
+    3
+  ],
+  "anomaly_points": [
+    0.149,
+    0.19,
+    0.157,
+    0.172,
+    0.159,
+    0.192,
+    0.163,
+    0.155,
+    0.16,
+    0.155
+  ],
+  "check_result": {},
+  "refinement_count": 0,
+  "needs_refinement": false
+}
