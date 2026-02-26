@@ -73,7 +73,7 @@ Please place the datasets in the `dataset` directory. Datasets and download link
 
 ```bash
 mkdir -p dataset
-# Download datasets to ./dataset/
+# Download datasets to ./dataset/raw
 ```
 
 ### 4. Run Anomaly Detection
@@ -81,40 +81,34 @@ mkdir -p dataset
 **Step 1: Preprocess**
 
 ```bash
-cd scripts
+cd ./scripts
 python preprocess.py ../dataset/raw ../dataset/processed --segment_size 100 --sample_ratio 1.0
 ```
 
 **Step 2: Train**
 
 ```bash
-python train_full_workflow.py --train_data ../dataset/processed --model Qwen/Qwen3-0.6B --output_dir ../output --epochs 2
+python train_full_workflow.py --train_data ../dataset/processed --model Qwen/Qwen3-8B --output_dir ../model --epochs 2
 ```
 
 **Step 3: Serve the trained model with vLLM**
 
 ```bash
 # Replace the path with your checkpoint
-vllm serve ../output/.../actor/huggingface --port 8000 --max-model-len 11000 --gpu-memory-utilization 0.95 --enable-auto-tool-choice --tool-call-parser hermes
+vllm serve ./model/PATH/TO/HUGGINGFACE --port 8000 --max-model-len 11000 --gpu-memory-utilization 0.95 --enable-auto-tool-choice --tool-call-parser hermes
 ```
 
 **Step 4: Batch inference**
 
 ```bash
-python batch_process.py -i ../dataset/processed -o ../dataset/batch_results -m Qwen/Qwen3-0.6B -u http://localhost:8000/v1 --enable_checking -w 4
+python batch_process.py -i ../dataset/processed -o ../results -m Qwen/Qwen3-8B -u http://localhost:8000/v1 --enable_checking -w 4
 ```
 
 **Step 5: Evaluate**
 
 ```bash
-python eval.py --results_dir ../dataset/batch_results --output ../dataset/evaluation_results.json
+python eval.py --results_dir ../results --output ../valuation_results.json
 ```
-
----
-
-*(Adjust commands to match the actual scripts in this repository.)*
-
----
 
 ## 📊 Benchmark Results
 
