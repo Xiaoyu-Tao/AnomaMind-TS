@@ -58,7 +58,15 @@ cd AnomaMind-TS
 ```bash
 conda create -n anomalmind python=3.10
 conda activate anomalmind
-pip install -r requirements.txt
+sh install.sh
+```
+
+Create `scripts/.env` with your API config (required for batch_process and training):
+
+```
+LLM_API_KEY=your_api_key_here
+LLM_BASE_URL=https://api.example.com/v1
+AUX_LLM_MODEL=your_model_name
 ```
 
 ### 3. Prepare Data
@@ -72,7 +80,7 @@ AnomaMind is evaluated on four TSAD benchmarks with diverse anomaly types (point
 Please place the datasets in the `dataset` directory. Datasets and download links will be provided in the repository or paper.
 
 ```bash
-mkdir -p dataset
+mkdir -p dataset/raw
 # Download datasets to ./dataset/raw
 ```
 
@@ -107,7 +115,7 @@ python batch_process.py -i ../dataset/processed -o ../results -m Qwen/Qwen3-8B -
 **Step 5: Evaluate**
 
 ```bash
-python eval.py --results_dir ../results --output ../valuation_results.json
+python eval.py --results_dir ../results --output ../evaluation_results.json
 ```
 
 ## 📊 Benchmark Results
@@ -147,6 +155,13 @@ AnomaMind-TS/
 ├── assets/            # Figures for README (main.png, ablation plots, etc.)
 └── scripts/           # Run scripts for each benchmark
 ```
+
+
+
+## 📜 License
+
+This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
+
 
 
 
