@@ -72,15 +72,19 @@ AUX_LLM_MODEL=your_model_name
 ### 3. Prepare Data
 
 AnomaMind is evaluated on four TSAD benchmarks with diverse anomaly types (point, contextual, collective, sequence):
-Datasets can be downloaded in https://www.thedatum.org/datasets/TSB-AD-U.zip. 
-Extract the CSV files and split them into training and testing sets (e.g., a 50/50 split). 
-Please organize the files into the following directory structure:
-- Training Data: Place CSV files in dataset/train/raw/
-- Testing Data: Place CSV files in dataset/test/raw/
-- 
 <p align="center">
   <img src="assets/dataset.png" width="800">
 </p>
+
+Datasets can be downloaded from [here](https://www.thedatum.org/datasets/TSB-AD-U.zip). 
+
+Extract the CSV files and split them into training and testing sets.
+
+Please organize the files into the following directory structure:
+
+- Training Data: Place CSV files in `dataset/train/raw/`
+- Testing Data: Place CSV files in `dataset/test/raw/`
+
 
 ### 4. Run Anomaly Detection
 
