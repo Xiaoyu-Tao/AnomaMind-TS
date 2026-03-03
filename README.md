@@ -76,8 +76,8 @@ AnomaMind is evaluated on four TSAD benchmarks with diverse anomaly types (point
 <p align="center">
   <img src="assets/dataset.png" width="800">
 </p>
-Datasets can be downloaded from [here](https://www.thedatum.org/datasets/TSB-AD-U.zip).
-Please place the extracted CSV files into the `dataset/raw` directory.
+Datasets can be downloaded in https://www.thedatum.org/datasets/TSB-AD-U.zip.
+Please place the extracted CSV files into the dataset/raw directory.
 
 ```bash
 mkdir -p dataset/raw
