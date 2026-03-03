@@ -76,11 +76,16 @@ AnomaMind is evaluated on four TSAD benchmarks with diverse anomaly types (point
 <p align="center">
   <img src="assets/dataset.png" width="800">
 </p>
-Datasets can be downloaded in https://www.thedatum.org/datasets/TSB-AD-U.zip. \
+Datasets can be downloaded in https://www.thedatum.org/datasets/TSB-AD-U.zip. 
 Extract the CSV files and split them into training and testing sets (e.g., a 50/50 split). 
-Please organize the files into the following directory structure: \
-- Training Data: Place CSV files in dataset/train/raw/
-- Testing Data: Place CSV files in dataset/test/raw/
+```
+Please organize the files into the following directory structure: 
+└── dataset/
+    ├── train/
+    │   └── raw/      <-- Your training csv files
+    └── test/
+        └── raw/      <-- Your testing csv files
+```
 
 ### 4. Run Anomaly Detection
 
