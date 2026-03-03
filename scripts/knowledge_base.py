@@ -61,51 +61,7 @@ Not each period has anomaly point/period, which is extremely rare.
 - Slow upward or downward trends, as well as gradual peaks and valleys caused by such trends, are completely normal behavior and must NOT be flagged as anomalies.
 - TOOLCALL: For IOPS dataset, You can call Gloabl Z score( threshold~3) and Global diff Z-score (Threshold~3.5), once any of two detect, label it as anomaly.
 - IMPORTANT: YOU NEED TO PUT THIS INTO YOUR PLAN: When detect spike, try to label it's left two and right two also as anomaly(Total 5).
-"""
-        
-        self.prior_knowledge["localization_agent_ECG"] = """
-## Domain Knowledge:
-This is ECG dataset, a highly periodic and regular time series signal, characteristic of bio-signals like the Electrocardiogram (ECG).
-Waveform Morphology (Shape): Each cycle is dominated by a single, high-amplitude, sharp spike which represents the main electrical event (analogous to the QRS complex in ECG).
-However, one cycle may longer than the boundingbox.
-So you should only refer to the first global picture.
-So do not report any local anomaly about dip or spike or Level Shift/Drift.
-"""
-        
-        self.prior_knowledge["planning_agent_ECG"] = """
-## Domain Knowledge:
-The time series is from ECG, a highly periodic Electrocardiogram dataset. 
-Important:
-**Only use fit_periodic_pattern() to detect anomaly**
-**If fit_periodic_pattern() return is_anomaly: true, flag the **whole 100 period as anomaly**. Put this into your plan**.
-**Else, do not report any anomaly**
-"""
-        
-        self.prior_knowledge["localization_agent_SVDB"] = """
-## Domain Knowledge:
-This series contain much noise. Do not report unless **it's value is far more or less than average**
-"""
-        
-        self.prior_knowledge["planning_agent_SVDB"] = """
-## Domain Knowledge:
-This series is from SVDB dataset.
-This series contain much noise with a ECG record.
-calling fit_periodic_pattern() to detect those long-periodic anomaly.
-Put it in your plan: If detect the spike or dip, label the **whole series(100 point)** as anomaly.
-"""
-        
-        self.prior_knowledge["localization_agent_NAB"] = """
-## Domain Knowledge:
-This series contain much noise. Do not report unless **it's value is far more or less than average**
-"""
-        
-        self.prior_knowledge["planning_agent_NAB"] = """
-## Domain Knowledge:
-This series contain much noise.
-Never calling fit_periodic_pattern(). Use global_value_zscore() to detect those global deviations. Set threshold more than 5.
-Put it in your plan: If detect the spike or dip, label the **whole series(100 point)** as anomaly.
-"""
-        
+"""           
         self.prior_knowledge["fine_grained_agent_TODS"] = """
 ## Domain Knowledge for Fine-Grained Reasoning:
 The Dataset is from **TODS**, include a few of anomaly point and period. 
@@ -122,8 +78,7 @@ If two adjacent or nearby points have opposite and large diff Z-scores, check th
 eg. Include sustained high plateau after abrupt spike onset, but do not label the last recovery one.
 The Dataset is from **YAHOO**, include a few of anomaly point and period. 
 You should conduct based on **YAHOO** domain knowledge.
-"""
-        
+"""   
         self.prior_knowledge["fine_grained_agent_IOPS"] = """
 ## Domain Knowledge for Fine-Grained Reasoning:
 The Dataset is from IOPS, include local and global anomaly point.
@@ -132,7 +87,6 @@ The Dataset is from **IOPS**, include a few of anomaly point and period.
 You should conduct based on **IOPS** domain knowledge.
 """
     
-        
         self.prior_knowledge["localization_agent_WSD"] = """
 ## Domain Knowledge:
 """
