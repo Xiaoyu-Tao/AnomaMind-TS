@@ -33,13 +33,10 @@ class LLMConfig:
         if self.api_key is None:
             self.api_key = os.getenv("LLM_API_KEY") or os.getenv("OPENAI_API_KEY")
         
-        # 如果base_url未设置，根据provider设置默认值
         if self.base_url is None or self.base_url == "":
             if self.provider == "local":
-                # 本地VLLM默认地址
                 self.base_url = os.getenv("LLM_BASE_URL", "http://localhost:8000/v1")
             elif self.provider == "custom":
-                # custom必须提供base_url
                 self.base_url = os.getenv("LLM_BASE_URL")
                 if not self.base_url:
                     raise ValueError("custom provider must provide base_url")
