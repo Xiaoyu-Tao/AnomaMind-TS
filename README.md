@@ -77,7 +77,7 @@ AnomaMind is evaluated on four TSAD benchmarks with diverse anomaly types (point
   <img src="assets/dataset.png" width="800">
 </p>
 Datasets can be downloaded in https://www.thedatum.org/datasets/TSB-AD-U.zip.
-Please place the extracted CSV files into the dataset/raw directory.
+Please extracte CSV files and put train/test split into dataset/train/raw or dataset/test/raw directory.
 
 ```bash
 mkdir -p dataset/raw
@@ -90,13 +90,14 @@ mkdir -p dataset/raw
 
 ```bash
 cd ./scripts
-python preprocess.py ../dataset/raw ../dataset/processed --segment_size 100 --sample_ratio 1.0
+python preprocess.py ../dataset/train/raw ../dataset/train/processed --segment_size 100 --sample_ratio 1.0
+python preprocess.py ../dataset/test/raw ../dataset/test/processed --segment_size 100 --sample_ratio 1.0
 ```
 
 **Step 2: RL Train**
 
 ```bash
-python train_full_workflow.py --train_data ../dataset/processed --model Qwen/Qwen3-8B --output_dir ../model --epochs 2
+python train_full_workflow.py --train_data ../dataset/train/processed --model Qwen/Qwen3-8B --output_dir ../model --epochs 2
 ```
 
 **Step 3: Serve the trained model with vLLM**
@@ -109,7 +110,7 @@ vllm serve ./model/PATH/TO/HUGGINGFACE --port 8000 --max-model-len 11000 --gpu-m
 **Step 4: Inference**
 
 ```bash
-python infer.py -i ../dataset/processed -o ../results -m Qwen/Qwen3-8B -u http://localhost:8000/v1 --enable_checking -w 4
+python infer.py -i ../dataset/test/processed -o ../results -m Qwen/Qwen3-8B -u http://localhost:8000/v1 --enable_checking -w 4
 ```
 
 **Step 5: Evaluate**
