@@ -45,7 +45,6 @@ class LLMConfig:
                     raise ValueError("custom provider must provide base_url")
     
     def to_dict(self) -> Dict[str, Any]:
-        """转换为字典"""
         return {
             "provider": self.provider,
             "model_name": self.model_name,
@@ -85,7 +84,6 @@ class LLMConfigManager:
             return LLMConfig()
     
     def set_default_config(self, config: LLMConfig):
-        """设置默认配置"""
         self.default_config = config
 
 
