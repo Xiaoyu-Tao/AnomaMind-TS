@@ -109,7 +109,7 @@ vllm serve ./model/PATH/TO/HUGGINGFACE --port 8000 --max-model-len 11000 --gpu-m
 **Step 4: Inference**
 
 ```bash
-python batch_process.py -i ../dataset/processed -o ../results -m Qwen/Qwen3-8B -u http://localhost:8000/v1 --enable_checking -w 4
+python infer.py -i ../dataset/processed -o ../results -m Qwen/Qwen3-8B -u http://localhost:8000/v1 --enable_checking -w 4
 ```
 
 **Step 5: Evaluate**
