@@ -61,7 +61,7 @@ conda activate anomalmind
 sh install.sh
 ```
 
-Create `scripts/.env` with your API config (required for batch_process and training):
+Create `scripts/.env` with your API config:
 
 ```
 LLM_API_KEY=your_api_key_here
@@ -76,8 +76,8 @@ AnomaMind is evaluated on four TSAD benchmarks with diverse anomaly types (point
 <p align="center">
   <img src="assets/dataset.png" width="800">
 </p>
-
-Please place the datasets in the `dataset` directory. Datasets and download links will be provided in the repository or paper.
+Datasets can be download in <https://www.thedatum.org/datasets/TSB-AD-U.zip>
+Please place the datasets in the `dataset` directory.
 
 ```bash
 mkdir -p dataset/raw
@@ -86,14 +86,14 @@ mkdir -p dataset/raw
 
 ### 4. Run Anomaly Detection
 
-**Step 1: Preprocess**
+**Step 1: Preprocess Data**
 
 ```bash
 cd ./scripts
 python preprocess.py ../dataset/raw ../dataset/processed --segment_size 100 --sample_ratio 1.0
 ```
 
-**Step 2: Train**
+**Step 2: RL Train**
 
 ```bash
 python train_full_workflow.py --train_data ../dataset/processed --model Qwen/Qwen3-8B --output_dir ../model --epochs 2
@@ -106,7 +106,7 @@ python train_full_workflow.py --train_data ../dataset/processed --model Qwen/Qwe
 vllm serve ./model/PATH/TO/HUGGINGFACE --port 8000 --max-model-len 11000 --gpu-memory-utilization 0.95 --enable-auto-tool-choice --tool-call-parser hermes
 ```
 
-**Step 4: Batch inference**
+**Step 4: Inference**
 
 ```bash
 python batch_process.py -i ../dataset/processed -o ../results -m Qwen/Qwen3-8B -u http://localhost:8000/v1 --enable_checking -w 4
@@ -150,6 +150,7 @@ AnomaMind achieves competitive or best average performance across Precision, Rec
 ```
 AnomaMind-TS/
 ├── README.md
+├── install.sh
 ├── requirements.txt
 ├── dataset/           # Place benchmark data here
 ├── assets/            # Figures for README (main.png, ablation plots, etc.)
