@@ -166,3 +166,13 @@ AnomaMind-TS/
 
 This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
 
+## Citation
+
+```bibtex
+@article{tao2026anomamind,
+  title={AnomaMind: Agentic Time Series Anomaly Detection with Tool-Augmented Reasoning},
+  author={Tao, Xiaoyu and Wu, Yuchong and Cheng, Mingyue and Guo, Ze and Gao, Tian},
+  journal={arXiv preprint arXiv:2602.13807},
+  year={2026}
+}
+```
