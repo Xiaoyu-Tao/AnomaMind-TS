@@ -106,13 +106,13 @@ python train_full_workflow.py --train_data ../dataset/train/processed --model Qw
 
 ```bash
 # Replace the path with your checkpoint
-vllm serve ./model/PATH/TO/HUGGINGFACE --port 8000 --max-model-len 11000 --gpu-memory-utilization 0.95 --enable-auto-tool-choice --tool-call-parser hermes
+vllm serve ./model/PATH/TO/HUGGINGFACE --port 8000 --max-model-len 11000 --gpu-memory-utilization 0.95 --enable-auto-tool-choice --tool-call-parser hermes --served-model-name detector
 ```
 
 **Step 4: Inference**
 
 ```bash
-python infer.py -i ../dataset/test/processed -o ../results -m Qwen/Qwen3-8B -u http://localhost:8000/v1 --enable_checking -w 4
+python infer.py -i ../dataset/test/processed -o ../results -m detector -u http://localhost:8000/v1 --enable_checking -w 4
 ```
 
 **Step 5: Evaluate**
