@@ -166,7 +166,7 @@ We provide pre-trained detector models for different scales:
 
 | Model | Description | Hugging Face Repo |
 |-------|-------------|-------------------|
-| **AnomaMind-0.6B** | The model based on Qwen3-8B | [AnomaMind-0.6B](https://huggingface.co/YuChongZ/AnomaMind-0.6B) |
+| **AnomaMind-0.6B** | The model based on Qwen3-0.6B | [AnomaMind-0.6B](https://huggingface.co/YuChongZ/AnomaMind-0.6B) |
 | **AnomaMind-8B** | The model based on Qwen3-8B | [AnomaMind-8B](https://huggingface.co/YuChongZ/AnomaMind-8B) |
 
 You can download and use these models directly:
