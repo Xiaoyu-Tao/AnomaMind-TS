@@ -20,16 +20,12 @@ class Evaluator:
             return state
 
         plan = state.get("plan", "")
-        fine_grained_conversation = state.get("detector_conversation_history", []) or state.get("fine_grained_conversation_history", [])
-        fine_intervals = state.get("detector_anomaly_intervals", []) or state.get("fine_anomaly_intervals", [])
-        fine_types = state.get("detector_anomaly_types", []) or state.get("fine_anomaly_types", [])
-        explanations = state.get("explanations", [])
-        confidences = state.get("confidences", [])
+        detector_conversation = state.get("detector_conversation_history", [])
 
         conversation_history_text = ""
-        if fine_grained_conversation:
+        if detector_conversation:
             conversation_parts = []
-            for msg in fine_grained_conversation:
+            for msg in detector_conversation:
                 role = msg.get("role", "")
                 content = msg.get("content", "")
 

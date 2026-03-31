@@ -1,11 +1,10 @@
 import pandas as pd
-from typing import TypedDict, Annotated, Sequence, Optional, Tuple
+from typing import TypedDict
 
 
 class WorkflowState(TypedDict):
     """Workflow state"""
     data: pd.DataFrame
-    context_data: Optional[pd.DataFrame]  # Context data (first 100 points, for sine fitting)
 
     # Visualization results (local only)
     local_view_path: str
@@ -19,7 +18,6 @@ class WorkflowState(TypedDict):
 
     # Planning results
     plan: str
-    current_interval_index: int
 
     # Detector analysis results
     detector_anomaly_intervals: list
@@ -28,7 +26,6 @@ class WorkflowState(TypedDict):
     confidences: list
     detector_conversation_history: list  # Full Detector conversation (includes Actor tool calls)
     actor_conversation: list  # Actor tool-call phase conversation (Detector input)
-    tool_call_conversation: list  # Alias for actor_conversation
 
     check_result: dict
     needs_refinement: bool
@@ -36,7 +33,6 @@ class WorkflowState(TypedDict):
 
     # Agent prompt/response records (for debugging and evaluation)
     agent_prompts_responses: dict  # {"localization": {"prompt": ..., "response": ...}, ...}
-    agent_timings: dict  # Per-Agent execution time
 
     # Error handling
     has_error: bool

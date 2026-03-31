@@ -132,7 +132,6 @@ Try to label the whole anomaly period (The anomaly usually be a interval instead
             return "UNKNOWN"
     
     def get_agent_knowledge(self, agent_type: str, dataset_type: str = None) -> str:
-        # locator 使用 planning_agent 的 key，detector 使用 fine_grained_agent 的 key
         lookup_agent = "planning_agent" if agent_type == "locator" else "fine_grained_agent" if agent_type == "detector" else agent_type
         if dataset_type:
             dataset_type = dataset_type.upper()

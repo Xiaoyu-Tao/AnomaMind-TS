@@ -14,7 +14,6 @@ def load_segment_data(segment_folder: Path) -> Dict[str, Any]:
 
     csv_path = folder / "segment_data.csv"
     segment_image_path = folder / "segment_clean.jpg"
-    context_csv_path = folder / "context_data.csv"
     ground_truth_path = folder / "ground_truth.csv"
 
     if not csv_path.exists():
@@ -23,10 +22,6 @@ def load_segment_data(segment_folder: Path) -> Dict[str, Any]:
         raise FileNotFoundError(f"no segment_clean.jpg in {folder}")
 
     segment_df = pd.read_csv(csv_path)
-
-    context_df = None
-    if context_csv_path.exists():
-        context_df = pd.read_csv(context_csv_path)
 
     ground_truth = []
     if ground_truth_path.exists():
@@ -47,172 +42,15 @@ def load_segment_data(segment_folder: Path) -> Dict[str, Any]:
 
     return {
         "segment_data": segment_df,
-        "context_data": context_df,
         "segment_image_path": str(segment_image_path),
         "segment_image_base64": segment_image_base64,
         "ground_truth": ground_truth,
     }
 
 
-def save_rollout_records(rollout_id: str, initial_state: Dict[str, Any], final_state: Dict[str, Any],
-                        reward_value: float, rollout_dir: Path, ground_truth: Optional[List[List[int]]] = None,
-                        action_token_count: Optional[int] = None,
-                        failure_reasons: Optional[List[str]] = None) -> None:
-    """Save all Agent inputs/outputs for each rollout to folder.
-
-    Each Agent in a separate file with prompt and answer, plus length (chars and tokens).
-    Also saves necessary state, error info, and reward info.
-
-    Args:
-        rollout_id: Rollout ID
-        initial_state: Initial state (not saved, for internal use)
-        final_state: Final state (saved but excludes large fields)
-        reward_value: Reward value
-        rollout_dir: Output directory
-        ground_truth: Ground truth anomaly intervals [[start1, end1], [start2, end2], ...]
-        action_token_count: ActionAgent answer token count (for truncation detection)
-        failure_reasons: Failure reasons list (when reward is -1)
-    """
-    rollout_dir.mkdir(parents=True, exist_ok=True)
-
-    # Save full rollout info (reward, errors, ground_truth, etc.)
-    info = {
-        "rollout_id": rollout_id,
-        "reward": reward_value,
-        "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
-        "ground_truth": ground_truth if ground_truth is not None else [],
-    }
-    
-
-    if reward_value == -1.0:
-        if failure_reasons:
-            info["failure_reasons"] = failure_reasons
-            info["failure_summary"] = ", ".join(failure_reasons)
-        if final_state.get("has_error", False):
-            info["has_error"] = True
-            info["error_message"] = final_state.get("error_message", "Unknown error")
-        else:
-            info["has_error"] = True
-            info["error_message"] = "Reward is -1.0 but no error message found"
-    else:
-        info["has_error"] = False
-    
-    with open(rollout_dir / "rollout_info.json", "w", encoding="utf-8") as f:
-        json.dump(info, f, indent=2, ensure_ascii=False)
-    
-    # Save final_state, excluding large fields
-    final_state_filtered = {k: v for k, v in final_state.items() 
-                           if k not in ["data", "local_view_path", "local_view_base64"]}
-    with open(rollout_dir / "final_state.json", "w", encoding="utf-8") as f:
-        json.dump(final_state_filtered, f, indent=2, ensure_ascii=False, default=str)
-    
-    # Save each Agent's input/output (one file per Agent with prompt/answer lengths)
-    agent_responses = final_state.get("agent_prompts_responses", {})
-    agent_timings = final_state.get("agent_timings", {})
-
-    def save_agent_file(agent_name: str, agent_data: Dict[str, Any], token_count: Optional[int] = None, timing_info: Optional[Dict[str, Any]] = None) -> None:
-        """Save a single Agent's file with prompt and answer lengths (chars and tokens)."""
-        if not agent_data:
-            return
-        
-        # Extract prompt and response
-        prompt = agent_data.get("prompt", "")
-        response = agent_data.get("response", "")
-        system_message = agent_data.get("system_message", "")
-        
-        # Compute character lengths
-        prompt_length = len(prompt) if prompt else 0
-        response_length = len(response) if response else 0
-        system_message_length = len(system_message) if system_message else 0
-        total_length = prompt_length + response_length + system_message_length
-        
-        # Build save format
-        length_info = {
-            "system_message_length_chars": system_message_length,
-            "prompt_length_chars": prompt_length,
-            "answer_length_chars": response_length,
-            "total_length_chars": total_length,
-        }
-        
-        agent_record = {
-            "agent_name": agent_name,
-            "length_info": length_info,
-            "system_message": system_message,
-            "prompt": prompt,
-            "answer": response,
-        }
-        
-        # Add timing info if provided
-        if timing_info:
-            agent_record["timing_info"] = {
-                "start_time": timing_info.get("start_time"),
-                "end_time": timing_info.get("end_time"),
-                "execution_time_seconds": timing_info.get("execution_time_seconds"),
-                "execution_time_formatted": f"{timing_info.get('execution_time_seconds', 0):.3f}s"
-            }
-        
-        # Save to file
-        filename = f"{agent_name}_agent.json"
-        with open(rollout_dir / filename, "w", encoding="utf-8") as f:
-            json.dump(agent_record, f, indent=2, ensure_ascii=False)
-        
-        token_info = f", tokens={token_count}" if token_count is not None else ""
-        time_info = f", time={timing_info.get('execution_time_seconds', 0):.3f}s" if timing_info else ""
-        logger.debug(f"[Rollout {rollout_id}] Saved {agent_name} agent: prompt={prompt_length} chars, answer={response_length} chars{token_info}{time_info}")
-    
-    # Localization Agent
-    localization_data = agent_responses.get("localization", {})
-    if localization_data:
-        localization_timing = agent_timings.get("localization")
-        save_agent_file("localization", localization_data, timing_info=localization_timing)
-    
-    # Planning Agent
-    planning_data = agent_responses.get("planning", {})
-    if planning_data:
-        planning_timing = agent_timings.get("planning")
-        save_agent_file("planning", planning_data, timing_info=planning_timing)
-    
-    # Action Agent (fine-grained) - pass token count
-    fine_grained_data = agent_responses.get("fine_grained", {})
-    if fine_grained_data:
-        action_timing = agent_timings.get("fine_grained_reasoning") 
-        save_agent_file("action", fine_grained_data, action_token_count, timing_info=action_timing)
-    
-    # Checking Agent
-    checking_data = agent_responses.get("checking", {})
-    if checking_data:
-        checking_timing = agent_timings.get("checking")
-        save_agent_file("checking", checking_data, timing_info=checking_timing)
-    
-    # Save full conversation history (ActionAgent tool call history)
-    conversation_history = final_state.get("fine_grained_conversation_history", [])
-    if conversation_history:
-        # Compute total history length
-        total_history_length = sum(
-            len(json.dumps(msg, ensure_ascii=False)) 
-            for msg in conversation_history
-        )
-        
-        history_record = {
-            "conversation_history": conversation_history,
-            "length_info": {
-                "total_messages": len(conversation_history),
-                "total_length": total_history_length,
-            }
-        }
-        
-        with open(rollout_dir / "action_conversation_history.json", "w", encoding="utf-8") as f:
-            json.dump(history_record, f, indent=2, ensure_ascii=False)
-    
-    # Save final output
-    final_output = final_state.get("final_output", {})
-    if final_output:
-        with open(rollout_dir / "final_output.json", "w", encoding="utf-8") as f:
-            json.dump(final_output, f, indent=2, ensure_ascii=False, default=str)
-    
-    # No longer save intermediate_results.json (info is in other files)
-    
-    logger.info(f"[Rollout {rollout_id}] Saved rollout records to {rollout_dir}")
+def save_rollout_records(*args, **kwargs) -> None:
+    """Deprecated: rollout record persistence removed."""
+    return None
 
 def image_to_base64(image_path: str) -> str:
     """Convert image to base64 encoding."""

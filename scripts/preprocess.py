@@ -174,7 +174,7 @@ def process(
         end = min(start + segment_size, N)
 
         sample_folder = output_dir / f"{name}_seg{seg_idx:03d}"
-        if (sample_folder / "global_overview.jpg").exists():
+        if (sample_folder / "segment_clean.jpg").exists():
             continue
 
         segment_data = data[start:end]
@@ -316,56 +316,10 @@ def process(
             gt_intervals, columns=["Start", "End"]
         ).to_csv(sample_folder / "ground_truth.csv", index=False)
 
-        ctx_indices = np.arange(max(0, start - 600), min(N, end + 600))
-        pd.DataFrame(
-            {
-                "Index": ctx_indices,
-                "Value": np.round(data[ctx_indices], 3),
-                "Label": labels[ctx_indices],
-            }
-        ).to_csv(sample_folder / "context_data.csv", index=False)
-
         with open(
             sample_folder / "global_statistics.json", "w", encoding="utf-8"
         ) as f:
             json.dump(global_stats, f, ensure_ascii=False, indent=2)
-
-        prefix_size = min(10000, N)
-        pd.DataFrame(
-            {
-                "Index": np.arange(prefix_size),
-                "Value": np.round(data[:prefix_size], 3),
-                "Label": labels[:prefix_size],
-            }
-        ).to_csv(sample_folder / "prefix_10000.csv", index=False)
-
-        plt.figure(figsize=(12, 4), dpi=300)
-        ax_ov = plt.gca()
-        ax_ov.plot(np.arange(N), data, color="black", linewidth=1.8)
-        ax_ov.grid(True, color="#d0d0d0", linewidth=0.7, alpha=0.8, axis="y")
-        for spine in ax_ov.spines.values():
-            spine.set_color("black")
-            spine.set_linewidth(1.2)
-        ax_ov.set_facecolor("white")
-        yb, yt = ax_ov.get_ylim()
-        rect = Rectangle(
-            (start, yb),
-            segment_size,
-            yt - yb,
-            linewidth=1.3,
-            edgecolor="#0066FF",
-            facecolor="none",
-            zorder=20,
-        )
-        ax_ov.add_patch(rect)
-        plt.tight_layout()
-        plt.savefig(
-            sample_folder / "global_overview.jpg",
-            dpi=300,
-            bbox_inches="tight",
-            facecolor="white",
-        )
-        plt.close()
 
     print(
         f"Done -> {csv_path.name} "

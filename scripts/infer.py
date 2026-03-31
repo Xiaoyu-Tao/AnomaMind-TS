@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Batch process samples using TrainerAgent.
+Batch process samples using AnomaAgent workflow.
 Reads folder, processes samples in parallel, saves results.
 """
 
@@ -23,7 +23,7 @@ try:
 except ImportError:
     pass
 
-from TrainerAgent import TrainerAgent
+from AnomaAgent import AnomaAgent
 from utils import load_segment_data
 from llm_config import LLMConfig
 
@@ -82,7 +82,7 @@ def get_aux_llm_config() -> LLMConfig:
 def process_single_sample(
     segment_folder: str,
     output_dir: str,
-    trainer_agent: TrainerAgent,
+    trainer_agent: AnomaAgent,
     max_retries: int = 3,
     retry_delay: float = 1.0,
     skip_if_exists: bool = True
@@ -92,7 +92,7 @@ def process_single_sample(
     Args:
         segment_folder: Sample folder path
         output_dir: Output directory
-        trainer_agent: TrainerAgent instance
+        trainer_agent: AnomaAgent instance
         max_retries: Max retries (default 3)
         retry_delay: Retry delay in seconds (default 1.0)
         skip_if_exists: Skip if already processed (default True)
@@ -150,7 +150,6 @@ def process_single_sample(
                 workflow = trainer_agent.build_workflow()
                 initial_state = {
                     "data": segment_data["segment_data"],
-                    "context_data": segment_data["context_data"],
                     "local_view_path": segment_data["segment_image_path"],
                     "local_view_base64": segment_data["segment_image_base64"],
                     "localization_anomaly_intervals": [],
@@ -158,7 +157,6 @@ def process_single_sample(
                     "localization_anomaly_reasons": [],
                     "visual_description": "",
                     "plan": "",
-                    "current_interval_index": -1,
                     "detector_anomaly_intervals": [],
                     "detector_anomaly_types": [],
                     "explanations": [],
@@ -252,7 +250,7 @@ def batch_process_with_trainer(
     output_dir: str,
     detector_model_name: str,
     detector_base_url: str,
-    enable_checking: bool = False,
+    enable_evaluator: bool = False,
     max_workers: int = 1,
     max_samples: Optional[int] = None,
     start_from: Optional[int] = None,
@@ -262,7 +260,7 @@ def batch_process_with_trainer(
     retry_failed_only: bool = False,
     max_turns: int = 5,
 ) -> Dict[str, Any]:
-    """Batch process samples using TrainerAgent.
+    """Batch process samples using AnomaAgent.
 
     Non-detector agents (localization, locator, evaluator, actor) load config from .env.
     Detector uses detector_model_name and detector_base_url from args.
@@ -272,7 +270,7 @@ def batch_process_with_trainer(
         output_dir: Output directory
         detector_model_name: Model name for Detector
         detector_base_url: Base URL for Detector
-        enable_checking: Enable Evaluator
+        enable_evaluator: Enable Evaluator
         max_workers: Parallel thread count
         max_samples: Max samples to process (None = all)
         start_from: Start index (for resume)
@@ -286,7 +284,7 @@ def batch_process_with_trainer(
         Summary dict
     """
     print("=" * 80)
-    print("Batch processing (TrainerAgent)")
+    print("Batch processing (AnomaAgent)")
     print("=" * 80)
 
     aux_config = get_aux_llm_config()
@@ -330,21 +328,20 @@ def batch_process_with_trainer(
     output_path = Path(output_dir)
     output_path.mkdir(parents=True, exist_ok=True)
 
-    print(f"\nTrainerAgent config:")
+    print(f"\nAnomaAgent config:")
     print(f"  Aux (from .env): {aux_config.model_name} @ {aux_config.base_url}")
     print(f"  Detector: {detector_model_name} @ {detector_base_url}")
-    print(f"  Enable Evaluator: {enable_checking}")
+    print(f"  Enable Evaluator: {enable_evaluator}")
     print(f"  Max workers: {max_workers}")
 
-    trainer_agent = TrainerAgent(
+    trainer_agent = AnomaAgent(
         max_turns=max_turns,
         localization_config=aux_config,
         locator_config=aux_config,
         evaluator_config=aux_config,
         actor_config=aux_config,
         detector_config=detector_config,
-        training_mode=False,
-        enable_evaluator=enable_checking,
+        enable_evaluator=enable_evaluator,
     )
 
     config_file = output_path / "batch_config.json"
@@ -357,7 +354,7 @@ def batch_process_with_trainer(
             "start_from": start_from,
             "max_samples": max_samples,
             "max_workers": max_workers,
-            "enable_checking": enable_checking,
+            "enable_evaluator": enable_evaluator,
             "detector_model_name": detector_model_name,
             "detector_base_url": detector_base_url,
             "timestamp": datetime.now().isoformat()
@@ -481,7 +478,7 @@ def batch_process_with_trainer(
 
 def parse_args():
     parser = argparse.ArgumentParser(
-        description="Batch process samples using TrainerAgent."
+        description="Batch process samples using AnomaAgent."
     )
     parser.add_argument(
         "--input", "-i",
@@ -496,15 +493,21 @@ def parse_args():
         help="Output results directory",
     )
     parser.add_argument(
-        "--enable_checking",
+        "--enable_evaluator",
         action="store_true",
-        help="Enable Evaluator (checking)",
+        help="Enable Evaluator (refinement loop)",
     )
     parser.add_argument(
         "--max_workers", "-w",
         type=int,
         default=1,
         help="Parallel thread count (default: 1)",
+    )
+    parser.add_argument(
+        "--use_env",
+        action="store_true",
+        help="Use Detector config from .env (AUX_LLM_MODEL/LLM_BASE_URL/MAX_SAMPLES), "
+             "ignoring --model_name/--base_url/--max_samples",
     )
     parser.add_argument(
         "--model_name", "-m",
@@ -543,16 +546,42 @@ def parse_args():
     return parser.parse_args()
 
 
+def _get_required_env(key: str) -> str:
+    value = os.getenv(key)
+    if value is None or str(value).strip() == "":
+        raise ValueError(f"Missing required .env value: {key}")
+    return str(value).strip()
+
+
+def _get_optional_env_int(key: str) -> Optional[int]:
+    raw = os.getenv(key)
+    if raw is None or str(raw).strip() == "":
+        return None
+    try:
+        return int(str(raw).strip())
+    except ValueError as e:
+        raise ValueError(f"Invalid int for .env {key}: {raw}") from e
+
+
 if __name__ == "__main__":
     args = parse_args()
+    detector_model_name = args.model_name
+    detector_base_url = args.base_url
+    max_samples = args.max_samples
+
+    if args.use_env:
+        detector_model_name = _get_required_env("AUX_LLM_MODEL")
+        detector_base_url = _get_required_env("LLM_BASE_URL")
+        max_samples = _get_optional_env_int("MAX_SAMPLES")
+
     batch_process_with_trainer(
         data_folder=args.input,
         output_dir=args.output,
-        detector_model_name=args.model_name,
-        detector_base_url=args.base_url,
-        enable_checking=args.enable_checking,
+        detector_model_name=detector_model_name,
+        detector_base_url=detector_base_url,
+        enable_evaluator=args.enable_evaluator,
         max_workers=args.max_workers,
-        max_samples=args.max_samples,
+        max_samples=max_samples,
         start_from=args.start_from,
         skip_existing=not args.no_skip,
         retry_failed_only=args.retry_failed_only,

@@ -5,6 +5,7 @@ Locator: Creates anomaly detection plan based on Localization results.
 
 from knowledge_base import KnowledgeBase
 from typing import Optional
+from pathlib import Path
 from langchain_core.messages import HumanMessage, SystemMessage
 from utils import get_column_names, format_time_series_value
 from workflowstate import WorkflowState
@@ -16,6 +17,23 @@ class Locator:
     def __init__(self, llm=None, knowledge_base: Optional[KnowledgeBase] = None):
         self.llm = llm
         self.knowledge_base = knowledge_base or KnowledgeBase()
+
+    def _infer_dataset_type(self, state: WorkflowState) -> str:
+        local_view_path = state.get("local_view_path", "") or ""
+        if not local_view_path:
+            return "UNKNOWN"
+        p = Path(local_view_path)
+        return self.knowledge_base.detect_dataset_type(
+            folder_path=str(p.parent),
+            sample_name=p.name,
+        )
+
+    def _extract_plan(self, full_response: str) -> str:
+        plan_match = re.search(r"<Plan>(.*?)</Plan>", full_response, re.DOTALL)
+        if plan_match:
+            return plan_match.group(1).strip()
+        print(f"[Locator] Warning: no <Plan> tag found")
+        return full_response
 
     def locate(self, state: WorkflowState) -> WorkflowState:
         print("\n[Locator] generating plan...")
@@ -33,24 +51,27 @@ class Locator:
         else:
             all_indices = list(range(len(data)))
 
-        values_str = ""
+        values_lines = []
         for j in range(0, len(all_values), 10):
-            chunk_values = all_values[j:j+10]
-            chunk_indices = all_indices[j:j+10] if j < len(all_indices) else []
+            chunk_values = all_values[j:j + 10]
+            chunk_indices = all_indices[j:j + 10] if j < len(all_indices) else []
             chunk_str = ", ".join([format_time_series_value(v) for v in chunk_values])
-            if chunk_indices and len(chunk_indices) > 0:
+            if chunk_indices:
                 start_idx = chunk_indices[0]
                 end_idx = chunk_indices[-1]
             else:
                 start_idx = j
-                end_idx = min(j+9, len(all_values)-1)
-            values_str += f"  [{start_idx}:{end_idx}]: {chunk_str}\n"
+                end_idx = min(j + 9, len(all_values) - 1)
+            values_lines.append(f"  [{start_idx}:{end_idx}]: {chunk_str}")
 
-        intervals_text = ""
         if intervals:
+            interval_lines = []
             for i, (start, end) in enumerate(intervals):
                 anomaly_type = types[i] if i < len(types) else "Unknown"
-                intervals_text += f"- Anomaly candidate interval #{i+1}: indices [{start}, {end}], type: {anomaly_type}\n"
+                interval_lines.append(
+                    f"- Anomaly candidate interval #{i + 1}: indices [{start}, {end}], type: {anomaly_type}"
+                )
+            intervals_text = "\n".join(interval_lines) + "\n"
         else:
             intervals_text = "- No anomaly candidate intervals found \n"
 
@@ -58,19 +79,21 @@ class Locator:
         if all_indices:
             min_idx = min(all_indices)
             max_idx = max(all_indices)
-            data_range_info = f"\n**Important**: The actual data index range in this dataset is [{min_idx}, {max_idx}]. All index references should use values within this range.\n"
+            data_range_info = (
+                f"\n**Important**: The actual data index range in this dataset is "
+                f"[{min_idx}, {max_idx}]. All index references should use values within this range.\n"
+            )
 
         time_series_text = f"""
 ## Complete Time Series Values (index: value)
-{values_str}
+{chr(10).join(values_lines)}
 {data_range_info}
 ## Possible anomaly intervals
 {intervals_text}
 """
 
         tools_description = get_available_tools_description()
-        local_view_path = state.get("local_view_path", "")
-        dataset_type = self.knowledge_base.detect_dataset_type(folder_path=local_view_path)
+        dataset_type = self._infer_dataset_type(state)
         locator_knowledge = self.knowledge_base.get_agent_knowledge("locator", dataset_type)
 
         if dataset_type != "UNKNOWN":
@@ -189,17 +212,7 @@ You can first conduct think (this thinking process will not be used as the plan)
             full_response = response.content
 
             state["agent_prompts_responses"]["locator"]["response"] = full_response
-
-            plan_match = re.search(r'<Plan>(.*?)</Plan>', full_response, re.DOTALL)
-
-            if plan_match:
-                plan_content = plan_match.group(1).strip()
-                state["plan"] = plan_content
-            else:
-                print(f"[Locator] Warning: no <Plan> tag found")
-                state["plan"] = full_response
-                state["current_interval_index"] = -1
-            state["current_interval_index"] = 0
+            state["plan"] = self._extract_plan(full_response)
             print(f"[Locator] Plan generated")
         except Exception as e:
             error_str = str(e)
@@ -209,10 +222,8 @@ You can first conduct think (this thinking process will not be used as the plan)
                 state["has_error"] = True
                 state["error_message"] = f"API_ERROR: {error_str}"
                 print(f"[Locator] API ERROR")
-                state["current_interval_index"] = -1
                 return state
 
             state["plan"] = "Use default analysis strategy"
-            state["current_interval_index"] = 0
 
         return state
